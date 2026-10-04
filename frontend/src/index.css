@@ -2,18 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Colour system: INFRARED THERMOGRAPHY.
+ * Maintenance engineers find failing bearings and loose terminations with thermal cameras.
+ * Their "ironbow" palette (cold violet → magenta → orange → white-hot yellow) is the brand
+ * here: chrome, surfaces, the health strip's heat line.
+ *
+ * Status keeps its own job: ANSI Z535 hues (red / amber / yellow / green / blue), tuned
+ * bright enough for a violet ground. Those five are never used decoratively.
+ */
 :root {
-  --surface: #15171a;        /* plate body */
-  --surface-raised: #1e2126; /* cards, rows */
-  --engrave: #30353c;        /* divider lines, etched borders */
-  --label: #eceff2;          /* primary text */
-  --label-muted: #828b96;    /* units, metadata */
+  /* Surfaces: infrared night, not black. */
+  --surface: #0f0a24;
+  --surface-raised: #1a1238;
+  --surface-sunk: #0b071b;
+  --engrave: #30265f;
+  --engrave-strong: #4a3c8c;
+  --label: #fff3e6;
+  --label-muted: #a99bd6;
 
-  --danger: #c8322b;  /* ANSI red    — breakdown, emergency */
-  --warning: #f0a500; /* ANSI amber  — high priority, overdue */
-  --caution: #f4d03f; /* ANSI yellow — approaching due */
-  --safe: #4a9b5e;    /* ANSI green  — completed, healthy */
-  --info: #2e6fb7;    /* ANSI blue   — informational, scheduled */
+  /* Ironbow heat scale. */
+  --heat-0: #3b1c9e;
+  --heat-1: #7b2ff7;
+  --heat-2: #c026d3;
+  --heat-3: #ff3d7f;
+  --heat-4: #ff8a3d;
+  --heat-5: #ffd23f;
+  --heat: linear-gradient(90deg, var(--heat-1) 0%, var(--heat-2) 30%, var(--heat-3) 55%, var(--heat-4) 80%, var(--heat-5) 100%);
+
+  /* Status (ANSI Z535, brightened for a dark violet ground). */
+  --danger: #ff4d6d;
+  --warning: #ffa62b;
+  --caution: #ffe066;
+  --safe: #2ee6a6;
+  --info: #4cc9ff;
+
+  /* Asset tags: warm peach, so the one identifier in the app is spotted instantly. */
+  --tag: #ffc59e;
+
+  /* RGB channels of the same colours, so Tailwind opacity modifiers (bg-info/10) work. */
+  --c-surface: 15 10 36;
+  --c-raised: 26 18 56;
+  --c-sunk: 11 7 27;
+  --c-engrave: 48 38 95;
+  --c-label: 255 243 230;
+  --c-muted: 169 155 214;
+  --c-tag: 255 197 158;
+  --c-danger: 255 77 109;
+  --c-warning: 255 166 43;
+  --c-caution: 255 224 102;
+  --c-safe: 46 230 166;
+  --c-info: 76 201 255;
+  --c-heat-0: 59 28 158;
+  --c-heat-1: 123 47 247;
+  --c-heat-2: 192 38 211;
+  --c-heat-3: 255 61 127;
+  --c-heat-4: 255 138 61;
+  --c-heat-5: 255 210 63;
 
   color-scheme: dark;
 }
@@ -21,94 +66,190 @@
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
-  background: var(--surface);
   color: var(--label);
   font-family: 'Source Sans 3', system-ui, sans-serif;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(1100px 520px at 105% -8%, rgba(255, 61, 127, 0.16), transparent 62%),
+    radial-gradient(900px 600px at -12% 108%, rgba(123, 47, 247, 0.22), transparent 60%),
+    radial-gradient(700px 400px at 55% 120%, rgba(255, 138, 61, 0.08), transparent 70%),
+    var(--surface);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(255, 61, 127, 0.45);
 }
 
 @layer components {
-  /* Stencilled signage: condensed, uppercase, spaced. */
   .stencil {
     font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
-  /* Numbers that change while you look at them must not change width. */
   .data {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
     font-size: 12.5px;
   }
+  .heat-text {
+    background: var(--heat);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .heat-bar {
+    background: var(--heat);
+  }
+
   .plate {
-    @apply bg-raised border border-engrave rounded;
+    @apply rounded-xl border;
+    border-color: var(--engrave);
+    background: linear-gradient(180deg, rgba(36, 25, 78, 0.92), rgba(26, 18, 56, 0.92));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 18px 40px -24px rgba(5, 2, 20, 0.9);
   }
   .plate-head {
-    @apply stencil text-[13px] text-muted px-3 h-8 flex items-center justify-between border-b border-engrave;
+    @apply stencil text-[13px] px-4 h-10 flex items-center justify-between border-b;
+    color: var(--label-muted);
+    border-color: var(--engrave);
   }
+  .plate-head > span:first-child {
+    @apply flex items-center gap-2;
+  }
+  .plate-head > span:first-child::before {
+    content: '';
+    width: 6px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--heat);
+  }
+
   .field {
-    @apply bg-surface border border-engrave rounded px-2 h-8 text-label w-full;
+    @apply rounded-lg px-3 h-9 w-full border transition-colors;
+    background: var(--surface-sunk);
+    border-color: var(--engrave);
+    color: var(--label);
+  }
+  .field:hover {
+    border-color: var(--engrave-strong);
   }
   .field:focus {
-    outline: 2px solid var(--label);
-    outline-offset: -1px;
+    outline: none;
+    border-color: var(--heat-3);
+    box-shadow: 0 0 0 3px rgba(255, 61, 127, 0.25);
   }
+
   .btn {
-    @apply stencil text-[13px] h-8 px-3 border rounded inline-flex items-center gap-2 whitespace-nowrap;
-    @apply border-engrave text-label bg-surface;
+    @apply stencil text-[13px] h-9 px-4 rounded-lg inline-flex items-center gap-2 whitespace-nowrap border transition;
+    border-color: var(--engrave-strong);
+    color: var(--label);
+    background: rgba(255, 255, 255, 0.03);
   }
   .btn:hover {
-    @apply border-label;
+    border-color: var(--heat-3);
+    background: rgba(255, 61, 127, 0.08);
   }
   .btn:disabled {
     @apply opacity-40 cursor-not-allowed;
   }
   .btn-go {
-    @apply bg-label text-surface border-label;
+    @apply border-transparent text-white;
+    background: linear-gradient(100deg, var(--heat-2), var(--heat-3) 50%, var(--heat-4));
+    box-shadow: 0 8px 24px -10px rgba(255, 61, 127, 0.8);
   }
   .btn-go:hover {
-    @apply bg-white;
+    filter: brightness(1.1) saturate(1.1);
+    background: linear-gradient(100deg, var(--heat-2), var(--heat-3) 50%, var(--heat-4));
+    box-shadow: 0 10px 30px -8px rgba(255, 61, 127, 0.95);
   }
+
   .grid-table {
     @apply w-full border-collapse;
   }
   .grid-table th {
-    @apply stencil text-[12px] text-muted font-semibold text-left px-3 h-8 border-b border-engrave whitespace-nowrap;
+    @apply stencil text-[12px] font-semibold text-left px-4 h-9 border-b whitespace-nowrap;
+    color: var(--label-muted);
+    border-color: var(--engrave);
+    background: rgba(11, 7, 27, 0.35);
   }
   .grid-table td {
-    @apply px-3 h-8 border-b border-engrave whitespace-nowrap;
+    @apply px-4 h-9 border-b whitespace-nowrap;
+    border-color: rgba(48, 38, 95, 0.6);
+  }
+  .grid-table tbody tr {
+    transition: background-color 120ms ease;
   }
   .grid-table tbody tr:hover td {
-    background: #23272d;
+    background: linear-gradient(90deg, rgba(255, 61, 127, 0.09), rgba(123, 47, 247, 0.05));
+  }
+  .grid-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .chip {
+    @apply stencil text-[11px] px-2 h-[22px] inline-flex items-center gap-1.5 rounded-md border whitespace-nowrap;
   }
 }
 
-/* The only motion in the app: a work order card registering a state change. */
+/* A work order card registering a state change: a heat flash. */
 @keyframes state-change {
   from {
-    background-color: rgba(236, 239, 242, 0.18);
+    box-shadow: 0 0 0 2px rgba(255, 210, 63, 0.9), 0 0 40px rgba(255, 61, 127, 0.55);
   }
   to {
-    background-color: transparent;
+    box-shadow: 0 0 0 0 transparent, 0 18px 40px -24px rgba(5, 2, 20, 0.9);
   }
 }
 .state-changed {
-  animation: state-change 900ms ease-out;
+  animation: state-change 1100ms ease-out;
 }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.7); }
+}
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 0% 50%; }
+  to { background-position: 200% 50%; }
+}
+.heat-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 8s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .state-changed {
+  .state-changed,
+  .pulse-dot,
+  .heat-shimmer {
     animation: none;
+  }
+  .grid-table tbody tr,
+  .btn,
+  .field {
+    transition: none;
   }
 }
 
 :focus-visible {
-  outline: 2px solid var(--label);
+  outline: 2px solid var(--heat-5);
   outline-offset: 2px;
+}
+
+/* Thin, tinted scrollbars instead of grey slabs. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--engrave-strong) transparent;
 }
