@@ -1,0 +1,20 @@
+spring:
+  flyway:
+    clean-disabled: false
+  jpa:
+    properties:
+      hibernate:
+        generate_statistics: true
+
+plantdesk:
+  jwt:
+    secret: test-only-secret-0123456789abcdef-0123456789abcdef
+  demo:
+    enabled: false
+  pm:
+    scheduler-enabled: false
+
+logging:
+  level:
+    org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: WARN
+    com.plantdesk: INFO

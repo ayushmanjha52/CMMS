@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface: #15171a;        /* plate body */
+  --surface-raised: #1e2126; /* cards, rows */
+  --engrave: #30353c;        /* divider lines, etched borders */
+  --label: #eceff2;          /* primary text */
+  --label-muted: #828b96;    /* units, metadata */
+
+  --danger: #c8322b;  /* ANSI red    — breakdown, emergency */
+  --warning: #f0a500; /* ANSI amber  — high priority, overdue */
+  --caution: #f4d03f; /* ANSI yellow — approaching due */
+  --safe: #4a9b5e;    /* ANSI green  — completed, healthy */
+  --info: #2e6fb7;    /* ANSI blue   — informational, scheduled */
+
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--surface);
+  color: var(--label);
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  /* Stencilled signage: condensed, uppercase, spaced. */
+  .stencil {
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  /* Numbers that change while you look at them must not change width. */
+  .data {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+  }
+  .plate {
+    @apply bg-raised border border-engrave rounded;
+  }
+  .plate-head {
+    @apply stencil text-[13px] text-muted px-3 h-8 flex items-center justify-between border-b border-engrave;
+  }
+  .field {
+    @apply bg-surface border border-engrave rounded px-2 h-8 text-label w-full;
+  }
+  .field:focus {
+    outline: 2px solid var(--label);
+    outline-offset: -1px;
+  }
+  .btn {
+    @apply stencil text-[13px] h-8 px-3 border rounded inline-flex items-center gap-2 whitespace-nowrap;
+    @apply border-engrave text-label bg-surface;
+  }
+  .btn:hover {
+    @apply border-label;
+  }
+  .btn:disabled {
+    @apply opacity-40 cursor-not-allowed;
+  }
+  .btn-go {
+    @apply bg-label text-surface border-label;
+  }
+  .btn-go:hover {
+    @apply bg-white;
+  }
+  .grid-table {
+    @apply w-full border-collapse;
+  }
+  .grid-table th {
+    @apply stencil text-[12px] text-muted font-semibold text-left px-3 h-8 border-b border-engrave whitespace-nowrap;
+  }
+  .grid-table td {
+    @apply px-3 h-8 border-b border-engrave whitespace-nowrap;
+  }
+  .grid-table tbody tr:hover td {
+    background: #23272d;
+  }
+}
+
+/* The only motion in the app: a work order card registering a state change. */
+@keyframes state-change {
+  from {
+    background-color: rgba(236, 239, 242, 0.18);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.state-changed {
+  animation: state-change 900ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .state-changed {
+    animation: none;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--label);
+  outline-offset: 2px;
+}

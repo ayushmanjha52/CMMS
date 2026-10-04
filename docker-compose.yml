@@ -1,0 +1,46 @@
+# Local stack: Postgres 16 + Redis + the app with the demo plants seeded.
+#   docker compose up --build      →  http://localhost:8080   (plant DEMO, password plantdesk-demo)
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: plantdesk
+      # Schema owner. Flyway runs as this user; the app does not.
+      POSTGRES_USER: plantdesk
+      POSTGRES_PASSWORD: plantdesk_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plantdesk -d plantdesk"]
+      interval: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      JDBC_DATABASE_URL: jdbc:postgresql://db:5432/plantdesk
+      DB_OWNER_USER: plantdesk
+      DB_OWNER_PASSWORD: plantdesk_dev
+      # Created by migration V1: not the owner, not a superuser, so RLS applies to it.
+      APP_DB_USER: plantdesk_app
+      APP_DB_PASSWORD: plantdesk_app_dev
+      CACHE_TYPE: redis
+      REDIS_URL: redis://redis:6379
+      REDIS_HEALTH_ENABLED: "true"
+      JWT_SECRET: local-compose-secret-change-me-0123456789abcdef
+      DEMO_ENABLED: "true"
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:

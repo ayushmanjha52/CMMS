@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: plantdesk
+
+  # The application connects as a NON-owner, NON-superuser role. Row-level security
+  # does not apply to superusers or (without FORCE) to table owners, so connecting as
+  # the owner would silently switch the second line of tenant isolation off.
+  datasource:
+    url: ${JDBC_DATABASE_URL:jdbc:postgresql://localhost:5432/plantdesk}
+    username: ${APP_DB_USER:plantdesk_app}
+    password: ${APP_DB_PASSWORD:plantdesk_app_dev}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+
+  # Flyway runs as the schema owner, which creates the tables, the application role,
+  # the RLS policies, and the narrow SECURITY DEFINER functions used before a tenant is known.
+  flyway:
+    user: ${DB_OWNER_USER:plantdesk}
+    password: ${DB_OWNER_PASSWORD:plantdesk_dev}
+    placeholders:
+      app_role: ${spring.datasource.username}
+      app_password: ${spring.datasource.password}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  cache:
+    type: ${CACHE_TYPE:simple}
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
+  mvc:
+    problemdetails:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  health:
+    redis:
+      enabled: ${REDIS_HEALTH_ENABLED:false}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
+
+plantdesk:
+  jwt:
+    # Must be at least 32 bytes; startup fails otherwise (HS256 key-length rule).
+    secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+    access-ttl: 15m
+    refresh-ttl: 14d
+  cookie:
+    secure: ${COOKIE_SECURE:false}
+  demo:
+    enabled: ${DEMO_ENABLED:false}
+  pm:
+    cron: ${PM_CRON:0 */15 * * * *}

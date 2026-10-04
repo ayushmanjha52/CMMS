@@ -1,0 +1,118 @@
+package com.plantdesk.pm;
+
+import com.plantdesk.tenancy.SystemLookupDao;
+import com.plantdesk.tenancy.TenantContext;
+import com.plantdesk.tenancy.TenantScope;
+import com.plantdesk.workorder.WorkOrder;
+import com.plantdesk.workorder.WorkOrderNumberGenerator;
+import com.plantdesk.workorder.WorkOrderRepository;
+import com.plantdesk.workorder.WorkOrderStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * Turns due PM schedules into work orders.
+ *
+ * <p>Duplicate protection, from the outside in:
+ * <ol>
+ *   <li>A schedule with an outstanding order is skipped — plants do not stack a second
+ *       copy of the same PM on top of one nobody has done yet; the first just goes overdue.</li>
+ *   <li>The occurrence counter and {@code @Version} on the schedule: two concurrent runs
+ *       that both read the same schedule cannot both commit.</li>
+ *   <li>A unique index on (pm_schedule_id, pm_sequence) — even code that bypasses 1 and 2
+ *       cannot insert occurrence N twice.</li>
+ * </ol>
+ */
+@Service
+public class PmGenerationService {
+
+    private static final Logger log = LoggerFactory.getLogger(PmGenerationService.class);
+    static final Set<WorkOrderStatus> OUTSTANDING =
+            EnumSet.of(WorkOrderStatus.OPEN, WorkOrderStatus.IN_PROGRESS, WorkOrderStatus.ON_HOLD);
+
+    private final PmScheduleRepository schedules;
+    private final WorkOrderRepository workOrders;
+    private final WorkOrderNumberGenerator numbers;
+    private final SystemLookupDao lookup;
+    private final TransactionTemplate tx;
+    private final Clock clock;
+
+    public PmGenerationService(PmScheduleRepository schedules, WorkOrderRepository workOrders,
+                               WorkOrderNumberGenerator numbers, SystemLookupDao lookup,
+                               TransactionTemplate tx, Clock clock) {
+        this.schedules = schedules;
+        this.workOrders = workOrders;
+        this.numbers = numbers;
+        this.lookup = lookup;
+        this.tx = tx;
+        this.clock = clock;
+    }
+
+    public record RunReport(int tenants, int generated, int failedTenants) {}
+
+    /**
+     * One transaction per tenant, each under that tenant's scope — the background job gets
+     * exactly the same isolation as an HTTP request. A failure in one plant's data does not
+     * stop PM generation for the others.
+     */
+    public RunReport generateForAllTenants() {
+        List<UUID> tenantIds = lookup.allTenantIds();
+        int generated = 0;
+        int failed = 0;
+        for (UUID tenantId : tenantIds) {
+            try {
+                List<UUID> created = TenantContext.callAs(TenantScope.system(tenantId),
+                        () -> tx.execute(status -> generateDue()));
+                generated += created == null ? 0 : created.size();
+            } catch (RuntimeException e) {
+                failed++;
+                log.error("PM generation failed for tenant {}", tenantId, e);
+            }
+        }
+        return new RunReport(tenantIds.size(), generated, failed);
+    }
+
+    /** Generates due orders for the tenant bound to the current transaction. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<UUID> generateDue() {
+        Instant now = clock.instant();
+        Set<UUID> busy = new HashSet<>(workOrders.findPmScheduleIdsWithStatusIn(OUTSTANDING));
+        List<UUID> created = new ArrayList<>();
+        for (PmSchedule s : schedules.findActiveWithAsset()) {
+            if (busy.contains(s.getId())) {
+                continue;
+            }
+            PmSchedule.Evaluation e = s.evaluate(now, s.getAsset().getRunningMinutes());
+            if (!e.shouldGenerate()) {
+                continue;
+            }
+            int occurrence = s.nextOccurrence();
+            WorkOrder wo = WorkOrder.fromPmSchedule(numbers.next(now), s.getAsset(), s.getPriority(),
+                    s.getTitle(), describe(s, e), s.getId(), occurrence, e.dueAt(), e.dueRunningMinutes(), null, now);
+            workOrders.save(wo);
+            created.add(wo.getId());
+        }
+        return created;
+    }
+
+    private static String describe(PmSchedule s, PmSchedule.Evaluation e) {
+        String trigger = e.trigger() == PmSchedule.Trigger.CALENDAR
+                ? "Calendar interval (" + s.getIntervalDays() + " days)"
+                : "Running hours (" + (s.getIntervalRunningMinutes() / 60) + " h)";
+        String body = s.getInstructions() == null ? "" : "\n\n" + s.getInstructions();
+        return "Generated by PM schedule. Trigger: " + trigger + "." + body;
+    }
+}
