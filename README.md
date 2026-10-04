@@ -4,6 +4,9 @@ A multi-tenant maintenance management system (CMMS) for small and mid-size indus
 Each plant is a tenant. Inside it: an asset hierarchy, breakdown and preventive work orders,
 technicians, spare parts, PM schedules with dual triggers, and MTBF/MTTR reliability analytics.
 
+**Live demo:** https://plantdesk-production.up.railway.app (plant code `DEMO`, e.g. `manager@demo.plant`,
+password `plantdesk-demo`; one-click role buttons on the login page)
+
 **Stack:** Java 21 · Spring Boot 3.3 · Spring Security 6 · Spring Data JPA · PostgreSQL 16 ·
 Flyway · Redis · React 18 + Vite + TypeScript + TanStack Query + Tailwind · JUnit 5 + Testcontainers.
 
