@@ -4,12 +4,15 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, post } from '../api/client';
 import type { AssetRef, FailureCodeView, Priority, UserView, WorkOrderDetail, WorkOrderType } from '../api/types';
 import { useCan } from '../auth/AuthContext';
+import { useTitle, useToast } from '../components/toast';
 import { ErrorPlate, Field, PageTitle, Plate } from '../components/ui';
 
 export function RaiseWorkOrderPage() {
   const can = useCan();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  useTitle(can.isTechnician ? 'Raise breakdown' : 'Raise work order');
+  const toast = useToast();
   const [asset, setAsset] = useState<AssetRef | null>(null);
   const [q, setQ] = useState(params.get('tag') ?? '');
   const [type, setType] = useState<WorkOrderType>('BREAKDOWN');
@@ -30,7 +33,10 @@ export function RaiseWorkOrderPage() {
 
   const raise = useMutation({
     mutationFn: (body: unknown) => post<WorkOrderDetail>('/api/work-orders', body),
-    onSuccess: (wo) => navigate(`/work-orders/${wo.id}`),
+    onSuccess: (wo) => {
+      toast(`${wo.number} raised on ${wo.asset.tag}`);
+      navigate(`/work-orders/${wo.id}`);
+    },
   });
 
   function submit(e: FormEvent) {

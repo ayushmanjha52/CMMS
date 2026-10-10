@@ -4,9 +4,11 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import type { TreeNode } from '../api/types';
 import { AssetTag, CriticalityMark } from '../components/marks';
+import { useTitle } from '../components/toast';
 import { Empty, ErrorPlate, Loading, PageTitle, Plate } from '../components/ui';
 
 export function AssetsPage() {
+  useTitle('Asset register');
   const tree = useQuery({ queryKey: ['asset-tree'], queryFn: () => api<TreeNode[]>('/api/assets/tree') });
   const [filter, setFilter] = useState('');
   // Structural levels open by default; machines and components collapse under them.
@@ -62,7 +64,7 @@ function Node({ node, depth, closed, toggle, forceOpen }: {
   const hasKids = node.children.length > 0;
   return (
     <li role="treeitem" aria-expanded={hasKids ? open : undefined}>
-      <div className="flex items-center gap-2 h-8 pr-3 border-b border-engrave hover:bg-[#23272d]" style={{ paddingLeft: 12 + depth * 20 }}>
+      <div className="flex items-center gap-2 h-10 pr-5 border-b border-engrave/70 hover:bg-white/[0.03] transition-colors" style={{ paddingLeft: 16 + depth * 22 }}>
         <button
           className={`w-4 data text-muted ${hasKids ? 'hover:text-label' : 'invisible'}`}
           onClick={() => toggle(node.id)}

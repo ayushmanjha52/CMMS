@@ -4,10 +4,12 @@ import { api, post } from '../api/client';
 import type { SparePart } from '../api/types';
 import { useCan } from '../auth/AuthContext';
 import { fmtMoney, fmtQty } from '../components/format';
+import { useTitle, useToast } from '../components/toast';
 import { Empty, ErrorPlate, Loading, PageTitle, Plate, Scroll } from '../components/ui';
 
 export function PartsPage() {
   const can = useCan();
+  useTitle('Spares');
   const [lowOnly, setLowOnly] = useState(false);
   const list = useQuery({ queryKey: ['parts'], queryFn: () => api<SparePart[]>('/api/parts') });
   const rows = (list.data ?? []).filter((p) => !lowOnly || p.belowReorderPoint);
@@ -16,7 +18,7 @@ export function PartsPage() {
     <>
       <PageTitle
         right={
-          <label className="stencil text-[12px] text-muted flex items-center gap-2">
+          <label className="text-[13px] text-muted flex items-center gap-2">
             <input type="checkbox" checked={lowOnly} onChange={(e) => setLowOnly(e.target.checked)} />
             At or below reorder point
           </label>
@@ -65,10 +67,12 @@ export function PartsPage() {
 
 function Receipt({ part }: { part: SparePart }) {
   const qc = useQueryClient();
+  const toast = useToast();
   const [qty, setQty] = useState('');
   const m = useMutation({
     mutationFn: () => post<SparePart>(`/api/parts/${part.id}/receipts`, { quantity: qty }),
-    onSuccess: () => {
+    onSuccess: (p) => {
+      toast(`Received · ${p.partNumber} now ${fmtQty(p.stockQty)} ${p.unit}`);
       setQty('');
       qc.invalidateQueries({ queryKey: ['parts'] });
       qc.invalidateQueries({ queryKey: ['summary'] });

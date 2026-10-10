@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://plantdesk-production.up.railway.app/sitemap.xml

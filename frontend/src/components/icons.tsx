@@ -1,4 +1,6 @@
 // Small line icons, drawn inline so there is no icon-font dependency.
+import { useId } from 'react';
+
 type P = { className?: string };
 const base = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 
@@ -35,18 +37,21 @@ export const IconTrendDown = ({ className = 'w-4 h-4' }: P) => (
 
 /** The PlantDesk mark: a thermal-camera reticle over a heat bloom. */
 export function Logo({ className = 'w-8 h-8' }: P) {
+  // Unique per instance: with a shared id, every logo resolves to the first one in the DOM,
+  // and if that one sits in a hidden container (the mobile bar on desktop) none render.
+  const gradientId = `pd-bloom-${useId().replace(/:/g, '')}`;
   return (
     <svg viewBox="0 0 40 40" className={className} aria-hidden="true">
       <defs>
-        <radialGradient id="pd-bloom" cx="50%" cy="55%" r="55%">
+        <radialGradient id={gradientId} cx="50%" cy="55%" r="55%">
           <stop offset="0%" stopColor="#ffd23f" />
           <stop offset="35%" stopColor="#ff8a3d" />
           <stop offset="65%" stopColor="#ff3d7f" />
           <stop offset="100%" stopColor="#7b2ff7" />
         </radialGradient>
       </defs>
-      <rect x="1" y="1" width="38" height="38" rx="10" fill="url(#pd-bloom)" />
-      <g stroke="#0f0a24" strokeWidth="2.6" strokeLinecap="round" fill="none">
+      <rect x="1" y="1" width="38" height="38" rx="10" fill={`url(#${gradientId})`} />
+      <g stroke="#08080b" strokeWidth="2.6" strokeLinecap="round" fill="none">
         <path d="M9 15V9h6M25 9h6v6M31 25v6h-6M15 31H9v-6" />
         <circle cx="20" cy="20" r="4.2" />
       </g>

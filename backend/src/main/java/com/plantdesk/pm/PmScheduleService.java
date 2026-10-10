@@ -10,6 +10,8 @@ import com.plantdesk.workorder.WorkOrder;
 import com.plantdesk.workorder.WorkOrderRepository;
 import com.plantdesk.workorder.WorkOrderReturnedToService;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -60,10 +62,10 @@ public class PmScheduleService {
                                 @Size(max = 4000) String instructions,
                                 @NotNull Trade trade,
                                 @NotNull Priority priority,
-                                @Min(1) Integer intervalDays,
-                                @DecimalMin("0.1") BigDecimal intervalRunningHours,
+                                @Min(1) @Max(3650) Integer intervalDays,
+                                @DecimalMin("0.1") @Digits(integer = 6, fraction = 1) BigDecimal intervalRunningHours,
                                 Instant lastDoneAt,
-                                @DecimalMin("0.0") BigDecimal lastDoneRunningHours) {}
+                                @DecimalMin("0.0") @Digits(integer = 7, fraction = 1) BigDecimal lastDoneRunningHours) {}
 
     @Transactional(readOnly = true)
     public List<ScheduleView> list() {

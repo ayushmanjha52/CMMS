@@ -105,8 +105,17 @@ public class DemoDataSeeder implements ApplicationRunner {
         this.clock = clock;
     }
 
+    /** Seeded logins on the public demo. They cannot be deactivated, so no visitor can lock out the next. */
+    public static boolean isDemoAccount(String email) {
+        return email.endsWith("@demo.plant") || email.endsWith("@loco.shed");
+    }
+
     @Override
     public void run(ApplicationArguments args) {
+        seedIfMissing();
+    }
+
+    public void seedIfMissing() {
         if (lookup.findTenantIdByCode("DEMO").isPresent()) {
             return;
         }

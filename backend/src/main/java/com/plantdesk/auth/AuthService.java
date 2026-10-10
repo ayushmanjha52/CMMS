@@ -3,7 +3,9 @@ package com.plantdesk.auth;
 import com.plantdesk.config.PlantDeskProperties;
 import com.plantdesk.security.AuthenticatedUser;
 import com.plantdesk.security.JwtService;
+import com.plantdesk.security.LoginThrottle;
 import com.plantdesk.security.Role;
+import com.plantdesk.security.TooManyRequestsException;
 import com.plantdesk.tenancy.SystemLookupDao;
 import com.plantdesk.tenancy.TenantContext;
 import com.plantdesk.tenancy.TenantScope;
@@ -51,13 +53,16 @@ public class AuthService {
     private final TransactionTemplate tx;
     private final Clock clock;
     private final Duration refreshTtl;
+    private final LoginThrottle throttle;
     // Compared against when the user does not exist, so "unknown email" and "wrong password"
     // take the same time. Otherwise response timing tells an attacker which emails exist.
     private final String dummyHash;
 
     public AuthService(SystemLookupDao lookup, UserRepository users, TenantRepository tenants,
                        RefreshTokenRepository refreshTokens, PasswordEncoder passwordEncoder,
-                       JwtService jwtService, TransactionTemplate tx, Clock clock, PlantDeskProperties props) {
+                       JwtService jwtService, TransactionTemplate tx, Clock clock, PlantDeskProperties props,
+                       LoginThrottle throttle) {
+        this.throttle = throttle;
         this.lookup = lookup;
         this.users = users;
         this.tenants = tenants;
@@ -76,15 +81,23 @@ public class AuthService {
                             String refreshToken, Instant refreshExpiresAt, SessionUser user) {}
 
     public TokenPair login(String plantCode, String email, String password) {
+        // Checked before any password work, so a throttled account costs no BCrypt time.
+        long wait = throttle.accountBlockedFor(plantCode, email);
+        if (wait > 0) {
+            throw new TooManyRequestsException(wait);
+        }
         var found = lookup.findUserForLogin(plantCode.trim(), email.trim());
         if (found.isEmpty()) {
             passwordEncoder.matches(password, dummyHash);
+            throttle.recordFailure(plantCode, email);
             throw new BadCredentialsException("Plant code, email or password is incorrect");
         }
         var creds = found.get();
         if (!passwordEncoder.matches(password, creds.passwordHash()) || !creds.active()) {
+            throttle.recordFailure(plantCode, email);
             throw new BadCredentialsException("Plant code, email or password is incorrect");
         }
+        throttle.recordSuccess(plantCode, email);
         TenantScope scope = new TenantScope(creds.tenantId(), creds.userId(), Role.valueOf(creds.role()));
         return TenantContext.callAs(scope, () -> tx.execute(status -> {
             User user = users.findById(creds.userId()).orElseThrow();

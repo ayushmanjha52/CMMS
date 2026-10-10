@@ -3,25 +3,24 @@
 @tailwind utilities;
 
 /*
- * Colour system: INFRARED THERMOGRAPHY.
- * Maintenance engineers find failing bearings and loose terminations with thermal cameras.
- * Their "ironbow" palette (cold violet → magenta → orange → white-hot yellow) is the brand
- * here: chrome, surfaces, the health strip's heat line.
+ * Black, like the screen of a thermal camera, with heat as the only light.
  *
- * Status keeps its own job: ANSI Z535 hues (red / amber / yellow / green / blue), tuned
- * bright enough for a violet ground. Those five are never used decoratively.
+ * Brand colour is the infrared "ironbow" scale (violet → magenta → orange → yellow), used
+ * for chrome, glows and the health strip. Status keeps its own five ANSI Z535 hues (red,
+ * amber, yellow, green, blue), which are never used decoratively.
+ *
+ * Type: Instrument Serif for headlines and big numbers, Geist for the interface,
+ * Geist Mono for anything that is data. All three self-hosted (SIL OFL 1.1).
  */
 :root {
-  /* Surfaces: infrared night, not black. */
-  --surface: #0f0a24;
-  --surface-raised: #1a1238;
-  --surface-sunk: #0b071b;
-  --engrave: #30265f;
-  --engrave-strong: #4a3c8c;
-  --label: #fff3e6;
-  --label-muted: #a99bd6;
+  --surface: #08080b;
+  --surface-raised: #111116;
+  --surface-sunk: #050507;
+  --engrave: #23232c;
+  --engrave-strong: #363643;
+  --label: #f4f1ec;
+  --label-muted: #9a96a6;
 
-  /* Ironbow heat scale. */
   --heat-0: #3b1c9e;
   --heat-1: #7b2ff7;
   --heat-2: #c026d3;
@@ -30,23 +29,21 @@
   --heat-5: #ffd23f;
   --heat: linear-gradient(90deg, var(--heat-1) 0%, var(--heat-2) 30%, var(--heat-3) 55%, var(--heat-4) 80%, var(--heat-5) 100%);
 
-  /* Status (ANSI Z535, brightened for a dark violet ground). */
   --danger: #ff4d6d;
   --warning: #ffa62b;
   --caution: #ffe066;
   --safe: #2ee6a6;
   --info: #4cc9ff;
 
-  /* Asset tags: warm peach, so the one identifier in the app is spotted instantly. */
   --tag: #ffc59e;
 
-  /* RGB channels of the same colours, so Tailwind opacity modifiers (bg-info/10) work. */
-  --c-surface: 15 10 36;
-  --c-raised: 26 18 56;
-  --c-sunk: 11 7 27;
-  --c-engrave: 48 38 95;
-  --c-label: 255 243 230;
-  --c-muted: 169 155 214;
+  /* RGB channels, so Tailwind opacity modifiers (bg-info/10) work. */
+  --c-surface: 8 8 11;
+  --c-raised: 17 17 22;
+  --c-sunk: 5 5 7;
+  --c-engrave: 35 35 44;
+  --c-label: 244 241 236;
+  --c-muted: 154 150 166;
   --c-tag: 255 197 158;
   --c-danger: 255 77 109;
   --c-warning: 255 166 43;
@@ -71,16 +68,28 @@ body,
 
 body {
   color: var(--label);
-  font-family: 'Source Sans 3', system-ui, sans-serif;
+  font-family: 'Geist Sans', system-ui, sans-serif;
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'ss01', 'cv11';
   background:
-    radial-gradient(1100px 520px at 105% -8%, rgba(255, 61, 127, 0.16), transparent 62%),
-    radial-gradient(900px 600px at -12% 108%, rgba(123, 47, 247, 0.22), transparent 60%),
-    radial-gradient(700px 400px at 55% 120%, rgba(255, 138, 61, 0.08), transparent 70%),
+    radial-gradient(1000px 520px at 108% -10%, rgba(255, 61, 127, 0.11), transparent 62%),
+    radial-gradient(900px 620px at -14% 110%, rgba(123, 47, 247, 0.14), transparent 60%),
     var(--surface);
   background-attachment: fixed;
+}
+
+/* Film grain: a few percent of noise so the black reads as a material, not an empty screen. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 ::selection {
@@ -88,16 +97,23 @@ body {
 }
 
 @layer components {
+  .font-display {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  /* Small uppercase label, e.g. column headers and nameplate captions. */
   .stencil {
-    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
-    font-weight: 600;
+    font-family: 'Geist Sans', system-ui, sans-serif;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
   .data {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: 'Geist Mono', ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
     font-size: 12.5px;
+    letter-spacing: 0;
   }
   .heat-text {
     background: var(--heat);
@@ -110,34 +126,38 @@ body {
   }
 
   .plate {
-    @apply rounded-xl border;
+    @apply rounded-2xl border;
     border-color: var(--engrave);
-    background: linear-gradient(180deg, rgba(36, 25, 78, 0.92), rgba(26, 18, 56, 0.92));
+    background: linear-gradient(180deg, rgba(22, 22, 28, 0.92), rgba(13, 13, 17, 0.92));
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.05),
-      0 18px 40px -24px rgba(5, 2, 20, 0.9);
+      inset 0 1px 0 rgba(255, 255, 255, 0.045),
+      0 24px 48px -28px rgba(0, 0, 0, 0.9);
   }
   .plate-head {
-    @apply stencil text-[13px] px-4 h-10 flex items-center justify-between border-b;
-    color: var(--label-muted);
+    @apply text-[13.5px] font-medium px-5 h-11 flex items-center justify-between border-b;
+    color: var(--label);
     border-color: var(--engrave);
   }
   .plate-head > span:first-child {
-    @apply flex items-center gap-2;
+    @apply flex items-center gap-2.5;
   }
   .plate-head > span:first-child::before {
     content: '';
-    width: 6px;
-    height: 14px;
-    border-radius: 2px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
     background: var(--heat);
+    box-shadow: 0 0 10px rgba(255, 61, 127, 0.7);
   }
 
   .field {
-    @apply rounded-lg px-3 h-9 w-full border transition-colors;
+    @apply rounded-lg px-3 h-10 w-full border transition-colors;
     background: var(--surface-sunk);
     border-color: var(--engrave);
     color: var(--label);
+  }
+  .field::placeholder {
+    color: rgba(154, 150, 166, 0.6);
   }
   .field:hover {
     border-color: var(--engrave-strong);
@@ -145,68 +165,67 @@ body {
   .field:focus {
     outline: none;
     border-color: var(--heat-3);
-    box-shadow: 0 0 0 3px rgba(255, 61, 127, 0.25);
+    box-shadow: 0 0 0 3px rgba(255, 61, 127, 0.22);
   }
 
   .btn {
-    @apply stencil text-[13px] h-9 px-4 rounded-lg inline-flex items-center gap-2 whitespace-nowrap border transition;
+    @apply text-[13.5px] font-medium h-9 px-4 rounded-lg inline-flex items-center gap-2 whitespace-nowrap border transition;
     border-color: var(--engrave-strong);
     color: var(--label);
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.025);
   }
   .btn:hover {
-    border-color: var(--heat-3);
-    background: rgba(255, 61, 127, 0.08);
+    border-color: rgba(255, 61, 127, 0.7);
+    background: rgba(255, 61, 127, 0.07);
   }
   .btn:disabled {
     @apply opacity-40 cursor-not-allowed;
   }
   .btn-go {
-    @apply border-transparent text-white;
+    @apply border-transparent text-white font-semibold;
     background: linear-gradient(100deg, var(--heat-2), var(--heat-3) 50%, var(--heat-4));
-    box-shadow: 0 8px 24px -10px rgba(255, 61, 127, 0.8);
+    box-shadow: 0 10px 28px -12px rgba(255, 61, 127, 0.85);
   }
   .btn-go:hover {
-    filter: brightness(1.1) saturate(1.1);
+    filter: brightness(1.08) saturate(1.1);
     background: linear-gradient(100deg, var(--heat-2), var(--heat-3) 50%, var(--heat-4));
-    box-shadow: 0 10px 30px -8px rgba(255, 61, 127, 0.95);
+    box-shadow: 0 12px 32px -10px rgba(255, 61, 127, 0.95);
   }
 
   .grid-table {
     @apply w-full border-collapse;
   }
   .grid-table th {
-    @apply stencil text-[12px] font-semibold text-left px-4 h-9 border-b whitespace-nowrap;
+    @apply stencil text-[10.5px] text-left px-5 h-9 border-b whitespace-nowrap;
     color: var(--label-muted);
     border-color: var(--engrave);
-    background: rgba(11, 7, 27, 0.35);
+    background: rgba(255, 255, 255, 0.015);
   }
   .grid-table td {
-    @apply px-4 h-9 border-b whitespace-nowrap;
-    border-color: rgba(48, 38, 95, 0.6);
+    @apply px-5 h-10 border-b whitespace-nowrap;
+    border-color: rgba(35, 35, 44, 0.75);
   }
   .grid-table tbody tr {
     transition: background-color 120ms ease;
   }
   .grid-table tbody tr:hover td {
-    background: linear-gradient(90deg, rgba(255, 61, 127, 0.09), rgba(123, 47, 247, 0.05));
+    background: linear-gradient(90deg, rgba(255, 61, 127, 0.07), rgba(123, 47, 247, 0.03));
   }
   .grid-table tbody tr:last-child td {
     border-bottom: 0;
   }
 
   .chip {
-    @apply stencil text-[11px] px-2 h-[22px] inline-flex items-center gap-1.5 rounded-md border whitespace-nowrap;
+    @apply text-[10.5px] font-semibold uppercase tracking-[0.06em] px-2 h-[22px] inline-flex items-center gap-1.5 rounded-md border whitespace-nowrap;
   }
 }
 
-/* A work order card registering a state change: a heat flash. */
 @keyframes state-change {
   from {
-    box-shadow: 0 0 0 2px rgba(255, 210, 63, 0.9), 0 0 40px rgba(255, 61, 127, 0.55);
+    box-shadow: 0 0 0 2px rgba(255, 210, 63, 0.9), 0 0 44px rgba(255, 61, 127, 0.5);
   }
   to {
-    box-shadow: 0 0 0 0 transparent, 0 18px 40px -24px rgba(5, 2, 20, 0.9);
+    box-shadow: 0 0 0 0 transparent, 0 24px 48px -28px rgba(0, 0, 0, 0.9);
   }
 }
 .state-changed {
@@ -230,10 +249,19 @@ body {
   animation: shimmer 8s linear infinite;
 }
 
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.toast-in {
+  animation: toast-in 220ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .state-changed,
   .pulse-dot,
-  .heat-shimmer {
+  .heat-shimmer,
+  .toast-in {
     animation: none;
   }
   .grid-table tbody tr,
@@ -248,7 +276,6 @@ body {
   outline-offset: 2px;
 }
 
-/* Thin, tinted scrollbars instead of grey slabs. */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--engrave-strong) transparent;

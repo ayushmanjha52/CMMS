@@ -18,7 +18,7 @@ const TICK_COLOR: Record<Priority, string> = {
 };
 
 // Ironbow, cold → hot, for the monthly failure-density row.
-const IRONBOW = ['#1d1147', '#3b1c9e', '#7b2ff7', '#c026d3', '#ff3d7f', '#ff8a3d', '#ffd23f'];
+const IRONBOW = ['#17171d', '#3b1c9e', '#7b2ff7', '#c026d3', '#ff3d7f', '#ff8a3d', '#ffd23f'];
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
 /**
@@ -96,22 +96,22 @@ export function HealthStrip({ strip }: { strip: Strip }) {
             </filter>
           </defs>
 
-          <rect x={M.left} y={M.top} width={PLOT_W} height={PLOT_H} rx="6" fill="rgba(11,7,27,0.55)" stroke="var(--engrave)" />
+          <rect x={M.left} y={M.top} width={PLOT_W} height={PLOT_H} rx="6" fill="rgba(5,5,7,0.6)" stroke="var(--engrave)" />
           {/* Horizontal guides at quarters of the MTBF scale. */}
           {maxMtbf > 0 &&
             [0.25, 0.5, 0.75].map((f) => (
               <line key={f} x1={M.left} x2={M.left + PLOT_W} y1={y(maxMtbf * f)} y2={y(maxMtbf * f)} stroke="var(--engrave)" strokeDasharray="2 4" />
             ))}
           {months.slice(1).map((m) => (
-            <line key={m.start} x1={xAt(m.start)} x2={xAt(m.start)} y1={M.top} y2={M.top + PLOT_H} stroke="rgba(74,60,140,0.35)" />
+            <line key={m.start} x1={xAt(m.start)} x2={xAt(m.start)} y1={M.top} y2={M.top + PLOT_H} stroke="rgba(54,54,67,0.5)" />
           ))}
 
           {maxMtbf > 0 && (
             <>
-              <text x={M.left - 8} y={M.top + 10} textAnchor="end" fill="var(--label-muted)" fontSize="11" fontFamily="JetBrains Mono">
+              <text x={M.left - 8} y={M.top + 10} textAnchor="end" fill="var(--label-muted)" fontSize="11" fontFamily="Geist Mono">
                 {maxMtbf}h
               </text>
-              <text x={M.left - 8} y={y(maxMtbf / 2) + 4} textAnchor="end" fill="var(--label-muted)" fontSize="11" fontFamily="JetBrains Mono">
+              <text x={M.left - 8} y={y(maxMtbf / 2) + 4} textAnchor="end" fill="var(--label-muted)" fontSize="11" fontFamily="Geist Mono">
                 {maxMtbf / 2}h
               </text>
             </>
@@ -123,7 +123,20 @@ export function HealthStrip({ strip }: { strip: Strip }) {
           {strip.failures.map((f) => {
             const fx = x(f.at);
             return (
-              <g key={f.workOrderId} className="cursor-pointer" onClick={() => navigate(`/work-orders/${f.workOrderId}`)}>
+              <g
+                key={f.workOrderId}
+                className="cursor-pointer outline-none [&:focus-visible>line]:stroke-[6]"
+                role="link"
+                tabIndex={0}
+                aria-label={`${f.number}, ${fmtDate(f.at)}, ${f.failureDescription ?? 'uncoded failure'}`}
+                onClick={() => navigate(`/work-orders/${f.workOrderId}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/work-orders/${f.workOrderId}`);
+                  }
+                }}
+              >
                 <title>
                   {`${f.number} · ${fmtDate(f.at)}\n${f.failureCode ?? 'uncoded'} ${f.failureDescription ?? ''}\nDowntime ${fmtMinutes(f.downtimeMinutes)}`}
                 </title>
@@ -137,7 +150,7 @@ export function HealthStrip({ strip }: { strip: Strip }) {
             <polyline points={line} fill="none" stroke="url(#mtbf-heat)" strokeWidth={3.5} strokeLinejoin="round" strokeLinecap="round" filter="url(#glow)" />
           )}
           {strip.trend.points.map((p) => (
-            <circle key={p.at} cx={x(p.at)} cy={y(p.rollingMtbfHours)} r={4.5} fill="#0f0a24" stroke="url(#mtbf-heat)" strokeWidth={2.5}>
+            <circle key={p.at} cx={x(p.at)} cy={y(p.rollingMtbfHours)} r={4.5} fill="#08080b" stroke="url(#mtbf-heat)" strokeWidth={2.5}>
               <title>{`Rolling MTBF ${fmtHours(p.rollingMtbfHours)} at ${fmtDate(p.at)}`}</title>
             </circle>
           ))}
@@ -150,13 +163,13 @@ export function HealthStrip({ strip }: { strip: Strip }) {
                 <rect x={xAt(m.start) + 1} y={HEAT_ROW_Y} width={Math.max(0, xAt(m.end) - xAt(m.start) - 2)} height={HEAT_ROW_H} rx="3" fill={IRONBOW[idx]}>
                   <title>{`${m.label}: ${m.count} failure${m.count === 1 ? '' : 's'}`}</title>
                 </rect>
-                <text x={(xAt(m.start) + xAt(m.end)) / 2} y={H - 12} textAnchor="middle" fill="var(--label-muted)" fontSize="11.5" fontFamily="Barlow Condensed" letterSpacing="1.2">
+                <text x={(xAt(m.start) + xAt(m.end)) / 2} y={H - 12} textAnchor="middle" fill="var(--label-muted)" fontSize="11.5" fontFamily="Geist Sans" letterSpacing="1">
                   {m.label}
                 </text>
               </g>
             );
           })}
-          <text x={M.left - 8} y={HEAT_ROW_Y + 11} textAnchor="end" fill="var(--label-muted)" fontSize="10" fontFamily="Barlow Condensed" letterSpacing="1">
+          <text x={M.left - 8} y={HEAT_ROW_Y + 11} textAnchor="end" fill="var(--label-muted)" fontSize="10" fontFamily="Geist Sans" letterSpacing="1">
             HEAT
           </text>
         </svg>

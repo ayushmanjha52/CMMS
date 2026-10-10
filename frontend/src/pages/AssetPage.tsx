@@ -8,12 +8,14 @@ import { HealthStrip } from '../components/HealthStrip';
 import { WorkOrderTable } from '../components/WorkOrderTable';
 import { fmtDate, fmtDateTime, fmtHours, fmtMinutes } from '../components/format';
 import { AssetTag } from '../components/marks';
+import { useTitle, useToast } from '../components/toast';
 import { Empty, Engraved, ErrorPlate, Field, Loading, Plate } from '../components/ui';
 
 export function AssetPage() {
   const { id = '' } = useParams();
   const can = useCan();
   const asset = useQuery({ queryKey: ['asset', id], queryFn: () => api<AssetDetail>(`/api/assets/${id}`) });
+  useTitle(asset.data ? `${asset.data.code} ${asset.data.name}` : 'Asset');
   const strip = useQuery({
     queryKey: ['health-strip', id],
     queryFn: () => api<Strip>(`/api/analytics/assets/${id}/health-strip`),
@@ -45,7 +47,7 @@ export function AssetPage() {
       <section className="plate">
         <div className="px-3 py-3 border-b border-engrave flex flex-wrap items-center gap-x-4 gap-y-1">
           <span className="data text-[16px]">{a.tag}</span>
-          <h1 className="text-[20px] font-semibold">{a.name}</h1>
+          <h1 className="font-display text-[34px] sm:text-[40px] leading-none text-white">{a.name}</h1>
           <span className="stencil text-[12px] text-muted">{a.level}</span>
           {!a.inService && <span className="stencil text-[12px] text-muted border border-engrave px-1.5">Decommissioned</span>}
           {can.doWork && (
@@ -115,11 +117,13 @@ export function AssetPage() {
 
 function MeterForm({ asset }: { asset: AssetDetail }) {
   const qc = useQueryClient();
+  const toast = useToast();
   const [hours, setHours] = useState('');
   const m = useMutation({
     mutationFn: () => post<AssetDetail>(`/api/assets/${asset.id}/meter-readings`, { runningHours: hours }),
     onSuccess: (d) => {
       qc.setQueryData(['asset', asset.id], d);
+      toast(`Meter reading recorded · ${fmtHours(d.runningHours)}`);
       setHours('');
     },
   });
@@ -160,6 +164,7 @@ const CHILD_LEVELS: Record<AssetLevel, AssetLevel[]> = {
 
 function RegisterChild({ parent }: { parent: AssetDetail }) {
   const qc = useQueryClient();
+  const toast = useToast();
   const levels = CHILD_LEVELS[parent.level];
   const [level, setLevel] = useState<AssetLevel>(levels[0]);
   const [form, setForm] = useState({ name: '', typePrefix: '', make: '', model: '', rating: '', serialNumber: '', criticality: 'B' });
@@ -167,7 +172,8 @@ function RegisterChild({ parent }: { parent: AssetDetail }) {
   const needsPrefix = level === 'MACHINE' || level === 'COMPONENT';
   const m = useMutation({
     mutationFn: () => post<AssetDetail>('/api/assets', { parentId: parent.id, level, ...form, typePrefix: needsPrefix ? form.typePrefix : undefined }),
-    onSuccess: () => {
+    onSuccess: (created) => {
+      toast(`Registered ${created.tag}`);
       qc.invalidateQueries({ queryKey: ['asset', parent.id] });
       qc.invalidateQueries({ queryKey: ['asset-tree'] });
       setForm({ name: '', typePrefix: '', make: '', model: '', rating: '', serialNumber: '', criticality: 'B' });

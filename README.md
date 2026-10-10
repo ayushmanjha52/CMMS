@@ -1,11 +1,32 @@
 # PlantDesk
 
+**Spot the machine that's wearing out before it stops your plant.**
+
 A multi-tenant maintenance management system (CMMS) for small and mid-size industrial plants.
 Each plant is a tenant. Inside it: an asset hierarchy, breakdown and preventive work orders,
 technicians, spare parts, PM schedules with dual triggers, and MTBF/MTTR reliability analytics.
 
-**Live demo:** https://plantdesk-production.up.railway.app (plant code `DEMO`, e.g. `manager@demo.plant`,
-password `plantdesk-demo`; one-click role buttons on the login page)
+| | |
+|---|---|
+| **Live app** | **https://plantdesk-production.up.railway.app** |
+| **Source** | https://github.com/ayushmanjha52/CMMS |
+| **API docs** | https://plantdesk-production.up.railway.app/swagger-ui.html |
+
+![PlantDesk sign-in screen](frontend/public/og.jpg)
+
+### Try it in one go
+
+Password for every demo account: **`plantdesk-demo`** (the login page also has one-click role buttons).
+
+| Plant code | Email | You are | Try this |
+|---|---|---|---|
+| `DEMO` | `manager@demo.plant` | Maintenance manager | Board and watch list, the conveyor motor's health strip, assign a job, approve a closure |
+| `DEMO` | `electrical@demo.plant` | Technician | Sees only his own jobs: start one, book labour, return it to service |
+| `LOCO` | `admin@loco.shed` | Admin of a *different* plant | Sees none of DEMO's data: tenant isolation |
+| `DEMO` | `admin@demo.plant` | Plant admin | Register equipment in the asset tree |
+| `DEMO` | `viewer@demo.plant` | Viewer | Read-only dashboards |
+
+The demo plants reset every night at 03:00 IST.
 
 **Stack:** Java 21 · Spring Boot 3.3 · Spring Security 6 · Spring Data JPA · PostgreSQL 16 ·
 Flyway · Redis · React 18 + Vite + TypeScript + TanStack Query + Tailwind · JUnit 5 + Testcontainers.
@@ -14,22 +35,15 @@ Flyway · Redis · React 18 + Vite + TypeScript + TanStack Query + Tailwind · J
 
 ## Run it
 
-**With Docker** (Postgres, Redis and the app, with two demo plants seeded):
+**With Docker** (Postgres, Redis and the app, with the same two demo plants seeded):
 
 ```bash
 docker compose up --build
 # open http://localhost:8080
 ```
 
-| Plant code | Email | Role |
-|---|---|---|
-| `DEMO` | `admin@demo.plant` | Plant admin |
-| `DEMO` | `manager@demo.plant` | Maintenance manager |
-| `DEMO` | `electrical@demo.plant` | Technician (electrical, A shift) |
-| `DEMO` | `viewer@demo.plant` | Viewer |
-| `LOCO` | `admin@loco.shed` | Plant admin of a *second* tenant |
-
-Password for all: `plantdesk-demo`. API docs: `http://localhost:8080/swagger-ui.html`.
+Running the jar directly needs `JWT_SECRET` set (32+ characters). There is deliberately no default.
+API docs locally: `http://localhost:8080/swagger-ui.html`.
 
 **Frontend dev server:** `cd frontend && npm install && npm run dev` (proxies `/api` to `localhost:8080`;
 set `API_URL` to point elsewhere).
@@ -50,7 +64,7 @@ export PLANTDESK_TEST_DB_USER=postgres PLANTDESK_TEST_DB_PASSWORD=...
 ./mvnw test
 ```
 
-62 tests. The ones that matter most:
+70 tests. The ones that matter most:
 
 | Test | Proves |
 |---|---|
@@ -63,6 +77,8 @@ export PLANTDESK_TEST_DB_USER=postgres PLANTDESK_TEST_DB_PASSWORD=...
 | `performance/QueryCountIT` | 50-asset tree = **1** statement; work order page = **≤ 2** (measured 24 without the entity graph) |
 | `pm/PmGenerationIT` | With a hand-advanced clock: generated exactly once in the lead window, never duplicated, re-baselined on completion; hours trigger fires first on a hard-running machine; DB rejects a duplicate occurrence |
 | `analytics/ReliabilityIT` | MTBF 576.0 h, MTTR 4.8 h, availability 99.17 %, trend DEGRADING: matches the worked example in `ReliabilityCalculatorTest` |
+| `security/SecurityHardeningIT` | Every `/api` endpoint declares its roles; login is rate-limited per IP and per account; security headers present; no CORS for foreign origins; error bodies leak nothing |
+| `demo/DemoResetIT` | Demo accounts can't be deactivated; the nightly reset rebuilds the demo without touching other plants |
 
 ---
 
@@ -131,6 +147,29 @@ Details worth knowing:
     not fail.
 - **Asset tags** (`PLT-01/AREA-03/LN-05/MTR-005`) are generated from atomic per-plant counters and stored
   as a materialised path. The whole tree loads in one indexed query.
+
+### Security checklist
+
+| Area | What is in place |
+|---|---|
+| Secrets | None in the repository. Production secrets live only in the host's environment variables. The JWT key has no fallback: the app refuses to start without one. Git history scanned: no secrets, no `.env` files ever committed. |
+| Authentication | BCrypt passwords; 15-minute access tokens kept in memory; rotating refresh tokens in an HttpOnly, Secure, SameSite=Strict cookie, revoked as a family on reuse. |
+| Authorisation | `@PreAuthorize` on every endpoint, enforced by a test. Tenant and user identity come only from the signed token, never from request input. |
+| Data isolation | Hibernate filter + PostgreSQL row-level security + composite foreign keys. App connects as a non-owner, non-superuser role. Database has no public endpoint. |
+| Brute force | Sign-in limited to 20 attempts per IP per 5 minutes and 10 failures per account per 15 minutes (429 + `Retry-After`). |
+| Input | Bean Validation on every request body (lengths, ranges, digit counts); JPA parameter binding only, so no SQL injection; React escapes all output. |
+| Headers | Strict Content-Security-Policy (`'self'` only, no inline script), HSTS, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy, Permissions-Policy. No CORS: app and API share an origin. |
+| Errors | No stack traces, exception names or SQL in responses; unexpected errors return a reference id and are logged server-side. |
+| Dependencies | `npm audit`: 0 vulnerabilities. Fonts self-hosted, so no third-party requests. |
+| Privacy | One strictly necessary cookie, no analytics or trackers. [Privacy & cookies](https://plantdesk-production.up.railway.app/privacy) and [Terms](https://plantdesk-production.up.railway.app/terms) pages. |
+
+Not applicable here: payments and refunds, file uploads, outgoing email, Firebase/Supabase.
+
+### Credits
+
+Fonts: [Instrument Serif](https://fonts.google.com/specimen/Instrument+Serif) and
+[Geist / Geist Mono](https://vercel.com/font), all under the SIL Open Font License 1.1, self-hosted
+via Fontsource. Logo, icons and illustrations are original to this project.
 
 ### Spec deviations (deliberate)
 

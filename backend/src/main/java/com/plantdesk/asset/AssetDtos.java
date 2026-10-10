@@ -1,6 +1,7 @@
 package com.plantdesk.asset;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -40,7 +41,7 @@ public final class AssetDtos {
             boolean inService) {}
 
     /** Hour meters are read in hours with one decimal; stored as integer minutes. */
-    public record MeterReadingRequest(@NotNull @DecimalMin("0.0") BigDecimal runningHours) {
+    public record MeterReadingRequest(@NotNull @DecimalMin("0.0") @Digits(integer = 7, fraction = 1) BigDecimal runningHours) {
         long toMinutes() {
             return runningHours.multiply(BigDecimal.valueOf(60)).setScale(0, RoundingMode.HALF_UP).longValueExact();
         }

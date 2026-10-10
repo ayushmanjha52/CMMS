@@ -5,15 +5,19 @@ import type { PmSchedule } from '../api/types';
 import { useCan } from '../auth/AuthContext';
 import { fmtDate, fmtHours } from '../components/format';
 import { AssetTag, PmStateMark, PriorityMark } from '../components/marks';
+import { useTitle, useToast } from '../components/toast';
 import { Empty, ErrorPlate, Loading, PageTitle, Plate, Scroll } from '../components/ui';
 
 export function PmPage() {
   const can = useCan();
+  useTitle('PM schedules');
+  const toast = useToast();
   const qc = useQueryClient();
   const list = useQuery({ queryKey: ['pm'], queryFn: () => api<PmSchedule[]>('/api/pm-schedules') });
   const run = useMutation({
     mutationFn: () => post<{ generated: number }>('/api/pm-schedules/run'),
-    onSuccess: () => {
+    onSuccess: (r) => {
+      toast(r.generated === 0 ? 'Nothing due right now. No work orders generated.' : `${r.generated} PM work order${r.generated === 1 ? '' : 's'} generated`, r.generated === 0 ? 'info' : 'success');
       qc.invalidateQueries({ queryKey: ['pm'] });
       qc.invalidateQueries({ queryKey: ['work-orders'] });
     },
@@ -25,7 +29,6 @@ export function PmPage() {
         right={
           can.manageWork && (
             <span className="flex items-center gap-3">
-              {run.data && <span className="stencil text-[12px] text-muted">{run.data.generated} work orders generated</span>}
               <button className="btn" onClick={() => run.mutate()} disabled={run.isPending}>
                 Generate due PMs now
               </button>

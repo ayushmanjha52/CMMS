@@ -6,9 +6,11 @@ import { WorkOrderTable } from '../components/WorkOrderTable';
 import { fmtHours } from '../components/format';
 import { IconAlert, IconBolt, IconBox, IconClock, IconFlame, IconTrendDown } from '../components/icons';
 import { CriticalityMark } from '../components/marks';
+import { useTitle } from '../components/toast';
 import { Empty, Loading, PageTitle, Plate } from '../components/ui';
 
 export function BoardPage() {
+  useTitle('Board');
   const summary = useQuery({ queryKey: ['summary'], queryFn: () => api<Summary>('/api/analytics/summary') });
   const degrading = useQuery({ queryKey: ['degrading'], queryFn: () => api<DegradingAsset[]>('/api/analytics/degrading') });
   const open = useQuery({
@@ -30,10 +32,10 @@ export function BoardPage() {
       </div>
 
       <section className="mb-5">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-4">
           <IconTrendDown className="w-5 h-5 text-heat-4" />
-          <h2 className="stencil text-[15px] text-white">Watch list</h2>
-          <span className="text-muted text-[13px]">assets whose gap between failures is shrinking</span>
+          <h2 className="font-display text-[28px] leading-none text-white">Watch list</h2>
+          <span className="text-muted text-[13.5px]">assets whose gap between failures is shrinking</span>
         </div>
         {degrading.isLoading ? (
           <Loading />
@@ -50,7 +52,7 @@ export function BoardPage() {
         )}
       </section>
 
-      <Plate title="Outstanding work" right={<Link to="/work-orders" className="stencil text-[12px] hover:text-white">All work orders →</Link>}>
+      <Plate title="Outstanding work" right={<Link to="/work-orders" className="text-[13px] text-muted hover:text-white">All work orders →</Link>}>
         {open.isLoading ? (
           <Loading />
         ) : open.data && open.data.content.length > 0 ? (
@@ -70,20 +72,20 @@ function WatchCard({ d }: { d: DegradingAsset }) {
   return (
     <Link
       to={`/assets/${d.assetId}`}
-      className="group relative block rounded-xl border border-heat-3/40 p-4 overflow-hidden transition hover:-translate-y-0.5 hover:border-heat-4/70"
-      style={{ background: 'radial-gradient(120% 140% at 100% 0%, rgba(255,61,127,0.28), transparent 55%), radial-gradient(90% 120% at 0% 100%, rgba(123,47,247,0.30), transparent 60%), linear-gradient(180deg, rgba(36,25,78,0.95), rgba(22,15,48,0.95))' }}
+      className="group relative block rounded-2xl border border-heat-3/35 p-5 overflow-hidden transition hover:-translate-y-0.5 hover:border-heat-4/70"
+      style={{ background: 'radial-gradient(120% 140% at 100% 0%, rgba(255,61,127,0.22), transparent 55%), radial-gradient(90% 120% at 0% 100%, rgba(123,47,247,0.22), transparent 60%), linear-gradient(180deg, rgba(22,22,28,0.96), rgba(12,12,16,0.96))' }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="data text-tag truncate">{d.tag}</div>
-          <div className="text-white text-[15px] font-semibold truncate mt-0.5">{d.name}</div>
+          <div className="font-display text-white text-[24px] leading-tight truncate mt-1">{d.name}</div>
         </div>
         <CriticalityMark c={d.criticality} />
       </div>
       <div className="flex items-end justify-between mt-4">
         <div>
-          <div className="stencil text-[11px] text-muted">MTBF change</div>
-          <div className="data text-[30px] leading-none heat-text font-medium">−{drop}%</div>
+          <div className="stencil text-[10.5px] text-muted mb-1">MTBF change</div>
+          <div className="font-display text-[52px] leading-none heat-text pr-1">−{drop}%</div>
         </div>
         <div className="text-right">
           <div className="data text-warning">{fmtHours(d.recentMeanGapHours)}</div>
@@ -107,7 +109,7 @@ const TONE = {
   warning: { glow: 'rgba(255,166,43,0.30)', border: 'border-warning/50', text: 'text-warning', icon: 'text-warning' },
   safe: { glow: 'rgba(46,230,166,0.22)', border: 'border-safe/40', text: 'text-safe', icon: 'text-safe' },
   brand: { glow: 'rgba(192,38,211,0.30)', border: 'border-heat-2/50', text: 'heat-text', icon: 'text-heat-3' },
-  calm: { glow: 'rgba(123,47,247,0.25)', border: 'border-engrave', text: 'text-label', icon: 'text-muted' },
+  calm: { glow: 'rgba(123,47,247,0.18)', border: 'border-engrave', text: 'text-label', icon: 'text-muted' },
 } as const;
 
 function Counter({ label, value, tone, icon: Icon, link }: {
@@ -120,14 +122,14 @@ function Counter({ label, value, tone, icon: Icon, link }: {
   const t = TONE[tone];
   const body = (
     <div
-      className={`relative h-full rounded-xl border ${t.border} px-4 py-3 overflow-hidden transition-transform hover:-translate-y-0.5`}
-      style={{ background: `radial-gradient(140% 120% at 100% 0%, ${t.glow}, transparent 60%), linear-gradient(180deg, rgba(36,25,78,0.95), rgba(22,15,48,0.95))` }}
+      className={`relative h-full rounded-2xl border ${t.border} px-5 py-4 overflow-hidden transition-transform hover:-translate-y-0.5`}
+      style={{ background: `radial-gradient(140% 120% at 100% 0%, ${t.glow}, transparent 60%), linear-gradient(180deg, rgba(22,22,28,0.96), rgba(12,12,16,0.96))` }}
     >
       <div className="flex items-start justify-between">
-        <div className="stencil text-[11.5px] text-muted">{label}</div>
+        <div className="text-[12.5px] font-medium text-muted">{label}</div>
         <Icon className={`w-5 h-5 ${t.icon}`} />
       </div>
-      <div className={`data text-[36px] leading-none mt-2 font-medium ${t.text}`}>{value ?? '—'}</div>
+      <div className={`font-display text-[54px] leading-[0.9] mt-3 ${t.text}`}>{value ?? '—'}</div>
     </div>
   );
   return link ? <Link to={link} className="block">{body}</Link> : body;

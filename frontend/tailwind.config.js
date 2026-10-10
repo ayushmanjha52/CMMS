@@ -31,9 +31,9 @@ export default {
         },
       },
       fontFamily: {
-        stencil: ['"Barlow Condensed"', 'Arial Narrow', 'sans-serif'],
-        body: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        display: ['"Instrument Serif"', 'Georgia', 'serif'],
+        sans: ['"Geist Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"Geist Mono"', 'ui-monospace', 'monospace'],
       },
     },
   },

@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import type { Page, WorkOrderListItem } from '../api/types';
 import { useCan } from '../auth/AuthContext';
 import { WorkOrderTable } from '../components/WorkOrderTable';
+import { useTitle } from '../components/toast';
 import { Empty, ErrorPlate, Loading, PageTitle, Plate } from '../components/ui';
 
 const VIEWS = {
@@ -18,6 +19,7 @@ type View = keyof typeof VIEWS;
 
 export function WorkOrdersPage() {
   const can = useCan();
+  useTitle(can.isTechnician ? 'My work orders' : 'Work orders');
   const [view, setView] = useState<View>('outstanding');
   const [type, setType] = useState<'' | 'BREAKDOWN' | 'PREVENTIVE'>('');
   const [page, setPage] = useState(0);
@@ -44,7 +46,7 @@ export function WorkOrdersPage() {
       </PageTitle>
 
       <div className="flex flex-wrap gap-2 mb-3">
-        <div className="inline-flex border border-engrave rounded overflow-hidden">
+        <div className="inline-flex border border-engrave rounded-lg overflow-hidden">
           {(Object.keys(VIEWS) as View[]).map((v) => (
             <button
               key={v}
@@ -52,13 +54,13 @@ export function WorkOrdersPage() {
                 setView(v);
                 setPage(0);
               }}
-              className={`stencil text-[12px] px-3 h-8 border-r border-engrave last:border-r-0 ${view === v ? 'bg-label text-surface' : 'text-muted hover:text-label'}`}
+              className={`text-[13px] font-medium px-3.5 h-9 border-r border-engrave last:border-r-0 transition-colors ${view === v ? 'bg-white text-black' : 'text-muted hover:text-label'}`}
             >
               {VIEWS[v].label}
             </button>
           ))}
         </div>
-        <select className="field w-auto stencil text-[12px]" value={type} onChange={(e) => setType(e.target.value as typeof type)}>
+        <select className="field w-auto h-9 text-[13px]" value={type} onChange={(e) => setType(e.target.value as typeof type)}>
           <option value="">All types</option>
           <option value="BREAKDOWN">Breakdown</option>
           <option value="PREVENTIVE">Preventive</option>

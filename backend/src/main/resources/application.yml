@@ -56,11 +56,21 @@ springdoc:
 server:
   port: ${PORT:8080}
   forward-headers-strategy: framework
+  # Error bodies never carry stack traces, exception class names or internal messages.
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+    include-exception: false
+    whitelabel:
+      enabled: false
 
 plantdesk:
   jwt:
-    # Must be at least 32 bytes; startup fails otherwise (HS256 key-length rule).
-    secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+    # Deliberately NO default. A fallback secret would mean a deployment that forgot to set
+    # JWT_SECRET runs with a key published in this repository, and anyone could mint tokens.
+    # Startup fails instead. Must be at least 32 bytes (HS256 key-length rule).
+    secret: ${JWT_SECRET}
     access-ttl: 15m
     refresh-ttl: 14d
   cookie:
@@ -69,3 +79,8 @@ plantdesk:
     enabled: ${DEMO_ENABLED:false}
   pm:
     cron: ${PM_CRON:0 */15 * * * *}
+  rate-limit:
+    login-per-ip: ${LOGIN_LIMIT_PER_IP:20}
+    ip-window: 5m
+    account-failures: ${LOGIN_LIMIT_ACCOUNT_FAILURES:10}
+    account-window: 15m

@@ -4,6 +4,8 @@ import com.plantdesk.asset.AssetDtos;
 import com.plantdesk.asset.Criticality;
 import com.plantdesk.user.Trade;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -36,10 +38,10 @@ public final class WorkOrderDtos {
 
     public record TransitionRequest(@NotNull WorkOrderAction action, @Size(max = 2000) String note, FailureCode failureCode) {}
 
-    public record LabourRequest(@Min(1) @Max(1440) int minutes, @NotNull LocalDate workDate,
+    public record LabourRequest(@Min(1) @Max(1440) int minutes, @NotNull @PastOrPresent LocalDate workDate,
                                 @Size(max = 300) String note, UUID technicianId) {}
 
-    public record PartRequest(@NotNull UUID sparePartId, @NotNull @DecimalMin("0.001") BigDecimal quantity) {}
+    public record PartRequest(@NotNull UUID sparePartId, @NotNull @DecimalMin("0.001") @Digits(integer = 9, fraction = 3) BigDecimal quantity) {}
 
     public record DowntimeRequest(@NotNull Instant start, Instant end) {}
 

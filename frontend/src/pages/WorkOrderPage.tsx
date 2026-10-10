@@ -6,6 +6,7 @@ import type { FailureCodeView, SparePart, UserView, WorkOrderAction, WorkOrderDe
 import { useCan } from '../auth/AuthContext';
 import { fmtDateTime, fmtHours, fmtMinutes, fmtMoney, fmtQty } from '../components/format';
 import { AssetTag, PriorityMark, StatusLabel } from '../components/marks';
+import { useTitle, useToast } from '../components/toast';
 import { Empty, Engraved, ErrorPlate, Field, Loading, Plate, Scroll } from '../components/ui';
 
 // Plant vocabulary on every button.
@@ -16,6 +17,16 @@ const ACTION_LABEL: Record<WorkOrderAction, string> = {
   CLOSE: 'Approve closure',
   REWORK: 'Send back for rework',
   CANCEL: 'Cancel work order',
+};
+
+// What the toast says once each action has taken effect.
+const DONE_MESSAGE: Record<WorkOrderAction, string> = {
+  START: 'Work started',
+  HOLD: 'Work order put on hold',
+  RETURN_TO_SERVICE: 'Equipment returned to service',
+  CLOSE: 'Closure approved',
+  REWORK: 'Sent back for rework',
+  CANCEL: 'Work order cancelled',
 };
 
 const NOTE_PROMPT: Partial<Record<WorkOrderAction, { label: string; required: boolean }>> = {
@@ -31,12 +42,21 @@ export function WorkOrderPage() {
   const qc = useQueryClient();
   const key = ['work-order', id];
   const wo = useQuery({ queryKey: key, queryFn: () => api<WorkOrderDetail>(`/api/work-orders/${id}`) });
+  const toast = useToast();
+  useTitle(wo.data ? wo.data.number : 'Work order');
 
   const [pending, setPending] = useState<WorkOrderAction | null>(null);
 
   const mutate = useMutation({
     mutationFn: ({ path, body }: { path: string; body: unknown }) => post<WorkOrderDetail>(`/api/work-orders/${id}${path}`, body),
-    onSuccess: (detail) => {
+    onSuccess: (detail, vars) => {
+      const body = vars.body as { action?: WorkOrderAction };
+      toast(
+        vars.path === '/transitions' && body.action ? `${DONE_MESSAGE[body.action]} · ${detail.number}`
+          : vars.path === '/labour' ? `Labour booked · total ${fmtMinutes(detail.labourMinutesTotal)}`
+          : vars.path === '/parts' ? `Spares drawn · job cost ${fmtMoney(detail.partsCostTotal)}`
+          : `Assigned to ${detail.assignee?.name ?? 'technician'}`,
+      );
       qc.setQueryData(key, detail);
       qc.invalidateQueries({ queryKey: ['work-orders'] });
       qc.invalidateQueries({ queryKey: ['summary'] });
@@ -72,7 +92,7 @@ export function WorkOrderPage() {
             </span>
             <StatusLabel status={w.status} overdue={w.overdue} />
           </div>
-          <h1 className="text-[20px] font-semibold mt-1">{w.title}</h1>
+          <h1 className="font-display text-[34px] sm:text-[40px] leading-[1.05] text-white mt-2">{w.title}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 text-muted">
             <AssetTag id={w.asset.id} tag={w.asset.tag} className="text-[14px]" />
             <span>{w.asset.name}</span>

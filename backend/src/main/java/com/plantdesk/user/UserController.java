@@ -3,6 +3,8 @@ package com.plantdesk.user;
 import com.plantdesk.auth.RefreshTokenRepository;
 import com.plantdesk.common.ConflictException;
 import com.plantdesk.common.NotFoundException;
+import com.plantdesk.config.PlantDeskProperties;
+import com.plantdesk.demo.DemoDataSeeder;
 import com.plantdesk.security.AuthenticatedUser;
 import com.plantdesk.security.Role;
 import com.plantdesk.security.Roles;
@@ -37,13 +39,15 @@ public class UserController {
     private final RefreshTokenRepository refreshTokens;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
+    private final boolean demoMode;
 
     public UserController(UserRepository users, RefreshTokenRepository refreshTokens,
-                          PasswordEncoder passwordEncoder, Clock clock) {
+                          PasswordEncoder passwordEncoder, Clock clock, PlantDeskProperties props) {
         this.users = users;
         this.refreshTokens = refreshTokens;
         this.passwordEncoder = passwordEncoder;
         this.clock = clock;
+        this.demoMode = props.demo().enabled();
     }
 
     public record UserView(UUID id, String email, String fullName, Role role, Trade trade, Shift shift, boolean active) {
@@ -92,6 +96,9 @@ public class UserController {
             throw new ConflictException("You cannot deactivate your own account");
         }
         User user = users.findById(id).orElseThrow(() -> new NotFoundException("User", id));
+        if (demoMode && DemoDataSeeder.isDemoAccount(user.getEmail())) {
+            throw new ConflictException("Demo accounts can't be deactivated on the public demo, so the next visitor can still sign in.");
+        }
         user.deactivate();
         refreshTokens.revokeAllForUser(id, clock.instant());
         return UserView.of(user);
